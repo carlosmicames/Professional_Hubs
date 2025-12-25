@@ -116,15 +116,20 @@ uvicorn app.main:app --reload
 
 ## Deployment
 
-### Railway (Recommended)
+### Railway (Recommended) 🚀
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed Railway deployment instructions.
 
 **Quick Deploy:**
 1. Push to GitHub
-2. Connect repository to Railway
+   ```bash
+   git add .
+   git commit -m "Deploy to Railway"
+   git push origin main
+   ```
+2. Connect repository to Railway (detects Dockerfile automatically)
 3. Add PostgreSQL database
-4. Configure environment variables
+4. Configure environment variables (see .env.example)
 5. Deploy automatically
 
 **Railway auto-provisions:**
@@ -132,6 +137,15 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed Railway deployment instructions.
 - HTTPS endpoints
 - Automatic deployments from GitHub
 - Environment variable management
+- SSL certificates
+
+**Build Method:** Docker (via provided `Dockerfile`)
+- Python 3.11 base image
+- Automatic dependency installation
+- Database migrations run on startup
+- Production-ready Gunicorn + Uvicorn
+
+**Deployment Fixed!** ✅ The "pip: command not found" error has been resolved. See [RAILWAY_FIX.md](RAILWAY_FIX.md) for details.
 
 ### Manual Deployment
 

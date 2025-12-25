@@ -20,7 +20,13 @@ git push origin main
 1. Go to [railway.app](https://railway.app) and click "Start a New Project"
 2. Select "Deploy from GitHub repo"
 3. Choose your `Professional_Hubs` repository
-4. Railway will automatically detect the configuration from `railway.toml`
+4. Railway will automatically detect the `Dockerfile` and build the container
+
+**Note:** The project uses Docker for reliable builds. Railway will:
+- Build from the provided `Dockerfile`
+- Install all Python dependencies
+- Run database migrations automatically on startup
+- Start the Gunicorn server with Uvicorn workers
 
 #### 3. Add PostgreSQL Database
 
@@ -45,15 +51,18 @@ TIMEZONE=America/Puerto_Rico
 
 **Note:** `DATABASE_URL` is automatically set by Railway when you add PostgreSQL.
 
-#### 5. Run Database Migrations
+#### 5. Verify Database Migrations
 
-After first deployment, run migrations:
+Migrations run automatically on startup via the Dockerfile CMD:
 
 1. Go to your service in Railway
 2. Click on "Deployments" tab
 3. Click on the latest deployment
-4. Open "Logs" and verify the app started
-5. Alternatively, connect via Railway CLI:
+4. Open "Logs" and verify you see:
+   ```
+   INFO  [alembic.runtime.migration] Running upgrade  -> 001, add segundo_apellido to clientes
+   ```
+5. If migrations fail, you can run manually via Railway CLI:
    ```bash
    railway login
    railway link
@@ -213,11 +222,26 @@ The `clientes` table now includes:
 
 ## Troubleshooting
 
+### Issue: "pip: command not found" during Railway build
+**Solution:** This is fixed! The project now uses a `Dockerfile` instead of NIXPACKS. Make sure you have:
+- `Dockerfile` in the root directory
+- `railway.toml` or `railway.json` configured to use `builder = "DOCKERFILE"`
+- Latest code pushed to GitHub
+
+If still failing:
+1. Delete the service in Railway
+2. Re-deploy from GitHub (Railway will detect the Dockerfile)
+
 ### Issue: "Module not found" errors
-**Solution:** Ensure you're in the `conflict_api` directory when running the app
+**Solution:** Ensure you're in the `conflict_api` directory when running the app locally. For Railway, the Dockerfile handles this automatically.
 
 ### Issue: Database connection errors
 **Solution:** Verify `DATABASE_URL` in Railway dashboard or `.env` file
+
+**Common causes:**
+- PostgreSQL service not added to Railway project
+- DATABASE_URL environment variable not set
+- Database not accepting connections (check Railway dashboard)
 
 ### Issue: Migration errors
 **Solution:**
@@ -225,6 +249,15 @@ The `clientes` table now includes:
 railway run alembic downgrade -1
 railway run alembic upgrade head
 ```
+
+### Issue: Port binding errors
+**Solution:** Railway automatically sets the `PORT` environment variable. The Dockerfile uses `$PORT` which Railway provides.
+
+### Issue: Build takes too long or times out
+**Solution:**
+- Railway Docker builds can take 2-5 minutes on first deploy
+- Subsequent builds use cache and are faster
+- Check Railway logs for specific errors
 
 ---
 
