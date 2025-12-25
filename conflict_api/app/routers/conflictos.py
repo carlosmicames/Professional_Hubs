@@ -1,6 +1,6 @@
 """
 Endpoints para Verificación de Conflictos de Interés.
-Multi-tenant: Todos los endpoints filtran por firma_id del header.
+Incluye búsqueda exacta y difusa con niveles de confianza.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,6 +10,7 @@ from app.database import get_db
 from app.dependencies import get_firm_id
 from app.schemas.conflicto import BusquedaConflicto, ResultadoConflicto
 from app.services.conflict_checker import conflict_checker
+from app.config import get_settings
 
 router = APIRouter(
     prefix="/conflictos",
@@ -25,12 +26,31 @@ router = APIRouter(
     description="""
     Busca conflictos de interés potenciales para un cliente nuevo.
     
-    Realiza búsqueda exacta (case-insensitive) en nombres de clientes existentes.
-    Incluye asuntos activos y cerrados para una verificación completa.
+    ## Tipos de búsqueda
     
-    **Uso típico:**
-    Antes de aceptar un nuevo cliente, verificar si ya existe en el sistema
-    o si está relacionado con algún asunto previo.
+    - **Coincidencia exacta**: Insensible a mayúsculas y acentos comunes
+      - José = jose = JOSÉ
+      - María = maria = Maria
+      - González = gonzalez
+      - NOTA: ñ NO se normaliza (Muñoz ≠ Munoz)
+    
+    - **Coincidencia difusa**: Usando algoritmo de similitud (>70%)
+      - Detecta errores tipográficos
+      - Nombres similares
+    
+    ## Ámbito de búsqueda
+    
+    - Clientes existentes (personas y empresas)
+    - Partes relacionadas en TODOS los asuntos (activos y cerrados)
+    
+    ## Niveles de confianza
+    
+    - **Alta**: 90-100% de similitud
+    - **Media**: 70-89% de similitud
+    
+    ## Segundo apellido
+    
+    Si se proporciona segundo_apellido, se requiere que coincida para obtener match exacto.
     """
 )
 def verificar_conflictos(
@@ -41,11 +61,15 @@ def verificar_conflictos(
     """
     Verifica conflictos de interés para un cliente potencial.
     
-    Proporcione al menos uno de:
-    - **nombre** + **apellido**: Para persona natural
-    - **nombre_empresa**: Para empresa/corporación
+    **Para persona natural:**
+    - nombre (requerido o apellido)
+    - apellido (requerido o nombre)
+    - segundo_apellido (opcional)
     
-    Retorna lista de conflictos encontrados con detalles del asunto.
+    **Para empresa:**
+    - nombre_empresa
+    
+    Retorna lista de conflictos ordenados por confianza (mayor a menor).
     """
     # Validar que hay al menos un criterio de búsqueda
     if not any([busqueda.nombre, busqueda.apellido, busqueda.nombre_empresa]):
@@ -72,11 +96,15 @@ def verificar_conflictos(
 def estado_servicio():
     """
     Retorna el estado del servicio de verificación.
-    
-    Útil para health checks y monitoreo.
     """
+    settings = get_settings()
     return {
         "servicio": "Verificación de Conflictos de Interés",
         "estado": "activo",
-        "version": "1.0.0",
+        "version": settings.api_version,
+        "configuracion": {
+            "umbral_similitud": settings.fuzzy_threshold,
+            "umbral_confianza_alta": settings.fuzzy_high_confidence
+        },
         "descripcion": "Sistema de verificación de conflictos para bufetes de abogados de Puerto Rico"
+    }

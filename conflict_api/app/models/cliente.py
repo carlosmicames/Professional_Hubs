@@ -27,7 +27,8 @@ class Cliente(Base):
     
     # Datos de persona natural
     nombre = Column(String(100), nullable=True, comment="Nombre del cliente individual")
-    apellido = Column(String(100), nullable=True, comment="Apellido del cliente individual")
+    apellido = Column(String(100), nullable=True, comment="Primer apellido del cliente individual")
+    segundo_apellido = Column(String(100), nullable=True, comment="Segundo apellido (común en Puerto Rico)")
     
     # Datos de empresa
     nombre_empresa = Column(String(255), nullable=True, comment="Nombre de empresa/corporación")
@@ -44,6 +45,7 @@ class Cliente(Base):
     # Índices para búsqueda de conflictos
     __table_args__ = (
         Index('ix_clientes_nombre_apellido', 'nombre', 'apellido'),
+        Index('ix_clientes_nombre_apellido_completo', 'nombre', 'apellido', 'segundo_apellido'),
         Index('ix_clientes_nombre_empresa', 'nombre_empresa'),
         Index('ix_clientes_firma_activo', 'firma_id', 'esta_activo'),
     )
@@ -53,7 +55,7 @@ class Cliente(Base):
         """Retorna el nombre completo del cliente."""
         if self.nombre_empresa:
             return self.nombre_empresa
-        partes = [p for p in [self.nombre, self.apellido] if p]
+        partes = [p for p in [self.nombre, self.apellido, self.segundo_apellido] if p]
         return " ".join(partes) if partes else ""
     
     def __repr__(self):

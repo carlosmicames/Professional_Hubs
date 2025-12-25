@@ -10,7 +10,8 @@ from app.models.asunto import EstadoAsunto
 class BusquedaConflicto(BaseModel):
     """Schema para búsqueda de conflictos."""
     nombre: Optional[str] = Field(None, description="Nombre a buscar")
-    apellido: Optional[str] = Field(None, description="Apellido a buscar")
+    apellido: Optional[str] = Field(None, description="Primer apellido a buscar")
+    segundo_apellido: Optional[str] = Field(None, description="Segundo apellido a buscar")
     nombre_empresa: Optional[str] = Field(None, description="Nombre de empresa a buscar")
     
     class Config:
@@ -18,7 +19,12 @@ class BusquedaConflicto(BaseModel):
             "examples": [
                 {
                     "nombre": "Juan",
-                    "apellido": "García"
+                    "apellido": "García",
+                    "segundo_apellido": "Rivera"
+                },
+                {
+                    "nombre": "José",
+                    "apellido": "González"
                 },
                 {
                     "nombre_empresa": "Corporación ABC"
@@ -35,6 +41,9 @@ class ConflictoEncontrado(BaseModel):
     asunto_nombre: str = Field(..., description="Nombre del asunto")
     estado_asunto: EstadoAsunto = Field(..., description="Estado del asunto")
     tipo_coincidencia: str = Field(..., description="Tipo de coincidencia encontrada")
+    similitud_score: float = Field(..., ge=0.0, le=100.0, description="Porcentaje de similitud (0-100)")
+    nivel_confianza: str = Field(..., description="Nivel de confianza: 'alta' (>=90%), 'media' (70-89%)")
+    campo_coincidente: str = Field(..., description="Campo que generó la coincidencia (ej: 'cliente_nombre', 'parte_relacionada')")
     
     class Config:
         from_attributes = True

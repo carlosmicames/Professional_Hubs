@@ -10,7 +10,8 @@ from pydantic import BaseModel, Field, model_validator
 class ClienteBase(BaseModel):
     """Campos base de Cliente."""
     nombre: Optional[str] = Field(None, max_length=100, description="Nombre del cliente individual")
-    apellido: Optional[str] = Field(None, max_length=100, description="Apellido del cliente individual")
+    apellido: Optional[str] = Field(None, max_length=100, description="Primer apellido del cliente individual")
+    segundo_apellido: Optional[str] = Field(None, max_length=100, description="Segundo apellido (común en Puerto Rico)")
     nombre_empresa: Optional[str] = Field(None, max_length=255, description="Nombre de empresa/corporación")
     
     @model_validator(mode='after')
@@ -36,7 +37,8 @@ class ClienteCreate(ClienteBase):
 class ClienteUpdate(BaseModel):
     """Schema para actualizar un cliente."""
     nombre: Optional[str] = Field(None, max_length=100, description="Nombre del cliente individual")
-    apellido: Optional[str] = Field(None, max_length=100, description="Apellido del cliente individual")
+    apellido: Optional[str] = Field(None, max_length=100, description="Primer apellido del cliente individual")
+    segundo_apellido: Optional[str] = Field(None, max_length=100, description="Segundo apellido (común en Puerto Rico)")
     nombre_empresa: Optional[str] = Field(None, max_length=255, description="Nombre de empresa/corporación")
 
 
@@ -46,6 +48,7 @@ class ClienteResponse(BaseModel):
     firma_id: int
     nombre: Optional[str]
     apellido: Optional[str]
+    segundo_apellido: Optional[str]
     nombre_empresa: Optional[str]
     nombre_completo: str = Field(..., description="Nombre completo calculado")
     esta_activo: bool
