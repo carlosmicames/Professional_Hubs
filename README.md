@@ -68,6 +68,30 @@ Professional Hubs is a FastAPI-based conflict-of-interest checking system design
 
 ## Quick Start
 
+### Option 1: With Streamlit UI (Recommended) 🎨
+
+**Start Backend:**
+```bash
+cd conflict_api
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+**Start Frontend:**
+```bash
+cd streamlit_app
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+**Access:**
+- API: http://localhost:8000/api/v1/docs
+- UI: http://localhost:8501
+
+See [STREAMLIT_QUICK_START.md](STREAMLIT_QUICK_START.md) for detailed guide.
+
+### Option 2: API Only
+
 ### Prerequisites
 
 - Python 3.11+
@@ -378,7 +402,12 @@ TIMEZONE="America/Puerto_Rico"
 
 ```
 Professional_Hubs/
-├── conflict_api/              # Main application
+├── streamlit_app/             # Streamlit web interface
+│   ├── app.py                # Main UI application
+│   ├── requirements.txt      # Frontend dependencies
+│   ├── .streamlit/          # Streamlit config
+│   └── README.md            # Frontend documentation
+├── conflict_api/              # FastAPI backend
 │   ├── alembic/              # Database migrations
 │   │   ├── versions/         # Migration scripts
 │   │   └── env.py
