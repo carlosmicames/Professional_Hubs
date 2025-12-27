@@ -13,6 +13,8 @@ from typing import Dict, List, Optional
 import sqlite3
 from dataclasses import dataclass
 import uuid
+import calendar  # CRITICAL: Import at top level to avoid Streamlit Cloud timeout
+import tempfile  # For safe database location
 
 # =============================================================================
 # CONFIGURATION
@@ -288,9 +290,19 @@ st.markdown(f"""
 # =============================================================================
 # DATABASE INITIALIZATION (SQLite for local storage)
 # =============================================================================
+def get_db_path():
+    """Get safe database path for Streamlit Cloud"""
+    # Use temp directory for Streamlit Cloud compatibility
+    if os.path.exists('/mount/src'):  # Streamlit Cloud
+        db_dir = '/tmp'
+    else:  # Local development
+        db_dir = '.'
+    return os.path.join(db_dir, 'professional_hubs.db')
+
 def init_database():
     """Initialize SQLite database for local data storage"""
-    conn = sqlite3.connect('professional_hubs.db', check_same_thread=False)
+    db_path = get_db_path()
+    conn = sqlite3.connect(db_path, check_same_thread=False)
     cursor = conn.cursor()
     
     # Clients table
@@ -486,13 +498,13 @@ CASE_TYPES = {
 # COI (CONFLICT OF INTEREST) CHECK FUNCTIONS
 # =============================================================================
 def check_coi_api(nombre: str, apellido: str, segundo_apellido: str = None, nombre_empresa: str = None) -> Dict:
-    """Check for conflicts of interest via the existing API"""
+    """Check for conflicts of interest via the existing API (with offline mode support)"""
     try:
         headers = {
             "X-Firm-ID": str(FIRM_ID),
             "Content-Type": "application/json"
         }
-        
+
         payload = {}
         if nombre:
             payload["nombre"] = nombre
@@ -502,23 +514,26 @@ def check_coi_api(nombre: str, apellido: str, segundo_apellido: str = None, nomb
             payload["segundo_apellido"] = segundo_apellido
         if nombre_empresa:
             payload["nombre_empresa"] = nombre_empresa
-        
+
         response = requests.post(
             f"{API_BASE_URL}/api/v1/conflictos/verificar",
             headers=headers,
             json=payload,
-            timeout=10
+            timeout=5  # Reduced timeout for faster failover
         )
-        
+
         if response.status_code == 200:
             return response.json()
         else:
-            return {"total_conflictos": 0, "conflictos": [], "error": f"API Error: {response.status_code}"}
-    
+            return {"total_conflictos": 0, "conflictos": [], "error": f"API Error: {response.status_code}", "offline": False}
+
     except requests.exceptions.ConnectionError:
-        return {"total_conflictos": 0, "conflictos": [], "error": "API not available"}
+        # Graceful degradation - API not available (offline mode)
+        return {"total_conflictos": 0, "conflictos": [], "error": "Modo sin conexion - solo busqueda local", "offline": True}
+    except requests.exceptions.Timeout:
+        return {"total_conflictos": 0, "conflictos": [], "error": "API timeout - solo busqueda local", "offline": True}
     except Exception as e:
-        return {"total_conflictos": 0, "conflictos": [], "error": str(e)}
+        return {"total_conflictos": 0, "conflictos": [], "error": f"Error: {str(e)}", "offline": True}
 
 def check_coi_local(nombre: str, apellido: str, opposing_party: str = None) -> Dict:
     """Check for conflicts against local client database"""
@@ -870,7 +885,7 @@ def render_dashboard():
     events = get_calendar_events(st.session_state.calendar_month, st.session_state.calendar_year)
     
     # Display calendar grid
-    import calendar
+    # calendar module imported at top level
     cal = calendar.Calendar(firstweekday=0)  # Monday first
     month_days = cal.monthdayscalendar(st.session_state.calendar_year, st.session_state.calendar_month)
     
@@ -1025,35 +1040,38 @@ def render_clients():
                     st.error("Por favor complete todos los campos requeridos (*)")
                 else:
                     # Automatic COI Check
-                    st.info("Verificando conflictos de interes...")
-                    
-                    # Check against API
-                    api_result = check_coi_api(nombre, apellido, segundo_apellido, empresa)
-                    
-                    # Check against local database
-                    local_result = check_coi_local(nombre, apellido)
-                    
-                    total_conflicts = api_result.get('total_conflictos', 0) + local_result.get('total_conflictos', 0)
-                    
-                    has_conflict = 1 if total_conflicts > 0 else 0
-                    conflict_details = ""
-                    
-                    if total_conflicts > 0:
-                        conflict_details = f"API: {api_result.get('total_conflictos', 0)} conflictos. Local: {local_result.get('total_conflictos', 0)} conflictos."
-                        st.markdown(f"""
-                            <div class="alert-danger">
-                                <strong>ALERTA DE CONFLICTO</strong><br>
-                                Se detectaron {total_conflicts} posible(s) conflicto(s) de interes.<br>
-                                El cliente sera guardado con una marca de conflicto.
-                            </div>
-                        """, unsafe_allow_html=True)
-                    else:
-                        st.markdown("""
-                            <div class="alert-success">
-                                <strong>Sin Conflictos</strong><br>
-                                No se detectaron conflictos de interes.
-                            </div>
-                        """, unsafe_allow_html=True)
+                    with st.spinner("Verificando conflictos de interes..."):
+                        # Check against API
+                        api_result = check_coi_api(nombre, apellido, segundo_apellido, empresa)
+
+                        # Check against local database
+                        local_result = check_coi_local(nombre, apellido)
+
+                        # Show offline mode warning if needed
+                        if api_result.get('offline', False):
+                            st.warning(f"⚠️ {api_result.get('error', 'API no disponible')} - Verificacion limitada a base de datos local")
+
+                        total_conflicts = api_result.get('total_conflictos', 0) + local_result.get('total_conflictos', 0)
+
+                        has_conflict = 1 if total_conflicts > 0 else 0
+                        conflict_details = ""
+
+                        if total_conflicts > 0:
+                            conflict_details = f"API: {api_result.get('total_conflictos', 0)} conflictos. Local: {local_result.get('total_conflictos', 0)} conflictos."
+                            st.markdown(f"""
+                                <div class="alert-danger">
+                                    <strong>ALERTA DE CONFLICTO</strong><br>
+                                    Se detectaron {total_conflicts} posible(s) conflicto(s) de interes.<br>
+                                    El cliente sera guardado con una marca de conflicto.
+                                </div>
+                            """, unsafe_allow_html=True)
+                        else:
+                            st.markdown("""
+                                <div class="alert-success">
+                                    <strong>Sin Conflictos</strong><br>
+                                    No se detectaron conflictos de interes.
+                                </div>
+                            """, unsafe_allow_html=True)
                     
                     # Save client
                     client_id = add_client({
@@ -1245,7 +1263,10 @@ def render_civus_ia():
                     with col1:
                         st.markdown("**Resultados API (Base de datos externa)**")
                         if api_result.get('error'):
-                            st.warning(f"API: {api_result['error']}")
+                            if api_result.get('offline', False):
+                                st.info(f"ℹ️ {api_result['error']}")
+                            else:
+                                st.warning(f"⚠️ API: {api_result['error']}")
                         elif api_result.get('total_conflictos', 0) > 0:
                             for conflict in api_result.get('conflictos', []):
                                 st.markdown(f"""
