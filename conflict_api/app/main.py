@@ -6,7 +6,7 @@ Sistema de verificación de conflictos de interés para bufetes de abogados.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
-from app.routers import firmas, clientes, asuntos, partes_relacionadas, conflictos
+from app.routers import firmas, clientes, asuntos, partes_relacionadas, conflictos, calls
 
 settings = get_settings()
 
@@ -79,3 +79,9 @@ async def health_check():
         "status": "healthy",
         "service": "conflict-api"
     }
+    
+app.include_router(
+    calls.router,
+    prefix=f"/api/{settings.api_version}",
+    tags=["AI Call Agent"]
+)

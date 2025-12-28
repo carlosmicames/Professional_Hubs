@@ -1,6 +1,6 @@
 """
 Professional Hubs - Conflict Checker
-Streamlit Frontend Application
+Streamlit Frontend Application - FIXED FOR DEPLOYMENT
 """
 
 import streamlit as st
@@ -12,8 +12,8 @@ import os
 from typing import Dict, List, Optional
 
 # Configuration
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
-FIRM_ID = int(os.getenv("FIRM_ID", "1"))
+API_BASE_URL = os.getenv("API_BASE_URL", st.secrets.get("API_BASE_URL", "http://localhost:8000"))
+FIRM_ID = int(os.getenv("FIRM_ID", st.secrets.get("FIRM_ID", "1")))
 
 # Page configuration
 st.set_page_config(
@@ -132,6 +132,22 @@ st.markdown("""
         padding: 1rem;
         border-radius: 4px;
         margin: 1rem 0;
+    }
+
+    /* Logo styling */
+    .logo-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    .logo-text {
+        color: white;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -253,7 +269,12 @@ def render_header():
 def render_sidebar():
     """Render sidebar with settings and history"""
     with st.sidebar:
-        st.image("https://via.placeholder.com/300x80/667eea/ffffff?text=Professional+Hubs", use_container_width=True)
+        # Logo replacement - using styled text instead of image
+        st.markdown("""
+            <div class="logo-container">
+                <p class="logo-text">⚖️ Professional Hubs</p>
+            </div>
+        """, unsafe_allow_html=True)
 
         st.markdown("---")
 
@@ -534,4 +555,3 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
