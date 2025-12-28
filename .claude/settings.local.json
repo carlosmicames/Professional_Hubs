@@ -5,7 +5,10 @@
       "Bash(find:*)",
       "Bash(tree:*)",
       "Bash(dir:*)",
-      "Bash(python -m alembic revision:*)"
+      "Bash(python -m alembic revision:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)"
     ]
   }
 }
