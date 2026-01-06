@@ -16,6 +16,8 @@ import uuid
 import calendar  # CRITICAL: Import at top level to avoid Streamlit Cloud timeout
 import tempfile  # For safe database location
 
+from auth import require_auth
+
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
@@ -29,6 +31,16 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+authenticated, name, username, authenticator = require_auth()
+
+if not authenticated:
+    st.stop()
+
+# Show logout button in sidebar
+with st.sidebar:
+    authenticator.logout('Logout', 'sidebar')
+    st.write(f'Welcome *{name}*')
 
 # =============================================================================
 # COLOR SCHEME - Navy Blue and Light Gray
