@@ -2,6 +2,7 @@
 Endpoints para gestión de facturación y recordatorios.
 """
 
+from app.models.billing_communication import CommunicationType, CommunicationStatus
 from typing import List, Optional
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Query

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_firm_id
-from app.services.call_agent_simple import simple_agent
+from app.services.call_agent import simple_agent
 from app.services.whatsapp_forms import whatsapp_form_service
 from app.services.calendar_service import calendar_service
 from app.services.email_service import email_service

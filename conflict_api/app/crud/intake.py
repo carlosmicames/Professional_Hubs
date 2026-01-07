@@ -1,4 +1,4 @@
-# conflict_api/app/crud/intake_simple.py
+# conflict_api/app/crud/intake.py
 """
 CRUD para IntakeCallSimple.
 """
@@ -6,7 +6,8 @@ CRUD para IntakeCallSimple.
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.crud.base import CRUDBase
-from app.models.intake import IntakeCallSimple
+from app.models.intake import IntakeCallSimple, EstadoConsulta  # FIXED: Added EstadoConsulta import
+from app.schemas.intake import IntakeCallCreate, IntakeCallUpdate  # Add schemas if needed
 
 
 class CRUDIntakeSimple(CRUDBase):
@@ -66,14 +67,26 @@ class CRUDIntakeSimple(CRUDBase):
         firm_id: int
     ) -> List[IntakeCallSimple]:
         """Obtiene consultas pendientes de formulario."""
-        from app.models.intake import EstadoConsulta
-        
         return db.query(IntakeCallSimple).filter(
             IntakeCallSimple.firma_id == firm_id,
             IntakeCallSimple.estado == EstadoConsulta.PENDIENTE,
             IntakeCallSimple.whatsapp_form_sent == True,
             IntakeCallSimple.whatsapp_form_completed == False
         ).all()
+    
+    def create(
+        self,
+        db: Session,
+        obj_in: dict,
+        firm_id: int
+    ) -> IntakeCallSimple:
+        """Create a new intake call record."""
+        obj_in['firma_id'] = firm_id
+        db_obj = IntakeCallSimple(**obj_in)
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
 
 
 crud_intake_simple = CRUDIntakeSimple(IntakeCallSimple)
