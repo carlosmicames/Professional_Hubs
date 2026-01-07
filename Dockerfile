@@ -25,8 +25,14 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application code
 COPY conflict_api /app
 
+# Copy entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+
+# Make entrypoint executable
+RUN chmod +x /app/entrypoint.sh
+
 # Expose port
 EXPOSE 8000
 
-# Run database migrations and start server
-CMD ["sh", "-c", "alembic upgrade head && gunicorn app.main:app -- workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT"]
+# Use entrypoint script
+ENTRYPOINT ["/app/entrypoint.sh"]
