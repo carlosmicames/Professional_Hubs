@@ -9,7 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
-from app.routers import firmas, clientes, asuntos, partes_relacionadas, conflictos, calls, billing
+from app.routers import firmas, clientes, asuntos, partes_relacionadas, conflictos, billing
+# from app.routers import calls  # Phase 2: AI Call Agent (disabled for now)
 from app.services.billing_scheduler import billing_scheduler
 
 settings = get_settings()
@@ -87,11 +88,12 @@ app.include_router(
     tags=["Verificación de Conflictos"]
 )
 
-app.include_router(
-    calls.router,
-    prefix=f"/api/{settings.api_version}",
-    tags=["AI Call Agent"]
-)
+# AI CALL AGENT - Phase 2
+# app.include_router(
+#     calls.router,
+#     prefix=f"/api/{settings.api_version}",
+#     tags=["AI Call Agent"]
+# )
 
 # NEW: Registrar billing router
 app.include_router(

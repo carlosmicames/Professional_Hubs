@@ -28,7 +28,7 @@ class AIResignationService:
                 import anthropic
                 self._client = anthropic.Anthropic(api_key=self.api_key)
             except Exception as e:
-                print(f"⚠️  Failed to initialize Anthropic client: {e}")
+                print(f"Failed to initialize Anthropic client: {e}")
                 return None
         return self._client
     
