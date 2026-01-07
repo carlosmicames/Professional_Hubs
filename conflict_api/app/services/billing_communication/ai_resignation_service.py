@@ -1,11 +1,12 @@
 """
 Servicio de IA para generar cartas de renuncia de representación.
-Usa Anthropic Claude API para sintetizar logs de comunicación.
+Usa OpenAI API (gpt-4o-mini) para sintetizar logs de comunicación.
 """
 
 import os
 from typing import List, Optional, Dict
 from datetime import datetime
+from openai import OpenAI
 
 
 class AIResignationService:
@@ -15,21 +16,25 @@ class AIResignationService:
     """
     
     def __init__(self):
-        """Inicializa cliente de Anthropic (lazy loading)."""
+        """Inicializa cliente de OpenAI (lazy loading)."""
         self._client = None
-        self.api_key = os.getenv("ANTHROPIC_API_KEY")
-        self.model = "claude-sonnet-4-20250514"
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.model = "gpt-4o-mini"  # Cost-effective model
     
     @property
     def client(self):
-        """Lazy initialization of Anthropic client."""
-        if self._client is None and self.api_key:
-            try:
-                import anthropic
-                self._client = anthropic.Anthropic(api_key=self.api_key)
-            except Exception as e:
-                print(f"Failed to initialize Anthropic client: {e}")
+        """Lazy initialization of OpenAI client."""
+        if self._client is None:
+            if not self.api_key:
+                print("⚠️  OPENAI_API_KEY not set - AI resignation letter feature disabled")
                 return None
+            
+            try:
+                self._client = OpenAI(api_key=self.api_key)
+            except Exception as e:
+                print(f"⚠️  Failed to initialize OpenAI client: {e}")
+                return None
+        
         return self._client
     
     def generate_resignation_letter(
@@ -60,7 +65,7 @@ class AIResignationService:
         if not self.client:
             return {
                 "success": False,
-                "error": "Anthropic API not configured. Set ANTHROPIC_API_KEY environment variable."
+                "error": "OpenAI API not configured. Set OPENAI_API_KEY environment variable."
             }
         
         try:
@@ -71,25 +76,26 @@ class AIResignationService:
                 communication_logs, case_details, attorney_name
             )
             
-            # Llamar a Claude API
-            response = self.client.messages.create(
+            # Llamar a OpenAI API
+            response = self.client.chat.completions.create(
                 model=self.model,
-                max_tokens=2500,
-                system=system_prompt,
                 messages=[
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
-                ]
+                ],
+                temperature=0.7,
+                max_tokens=2500
             )
             
             # Extraer texto de respuesta
-            letter_text = response.content[0].text
+            letter_text = response.choices[0].message.content
             
             return {
                 "success": True,
                 "letter": letter_text,
                 "generated_at": datetime.utcnow().isoformat(),
                 "model_used": self.model,
-                "tokens_used": response.usage.input_tokens + response.usage.output_tokens
+                "tokens_used": response.usage.total_tokens
             }
         
         except Exception as e:
@@ -100,7 +106,7 @@ class AIResignationService:
     
     def _get_system_prompt(self) -> str:
         """
-        System prompt para Claude - define rol y restricciones.
+        System prompt para OpenAI - define rol y restricciones.
         """
         return """Eres un asistente legal profesional especializado en derecho de Puerto Rico.
 
@@ -146,7 +152,7 @@ La carta debe ser lista para imprimir en papel membretado sin necesidad de edici
         attorney_name: str
     ) -> str:
         """
-        Construye prompt detallado para Claude con todos los datos.
+        Construye prompt detallado para OpenAI con todos los datos.
         """
         # Organizar logs cronológicamente
         sorted_logs = sorted(communication_logs, key=lambda x: x.get('sent_at', ''))
@@ -241,16 +247,18 @@ Redacta SOLO la carta, sin comentarios adicionales."""
 
 Responde SOLO con el resumen, sin preámbulos."""
             
-            response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=150,
-                messages=[{"role": "user", "content": prompt}]
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=150
             )
             
-            return response.content[0].text.strip()
+            return response.choices[0].message.content.strip()
         
         except:
             return f"{client_name}: {days_overdue} días vencido, {communication_count} recordatorios sin respuesta"
 
 
+# Singleton instance
 ai_resignation_service = AIResignationService()

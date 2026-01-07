@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.dependencies import get_firm_id
 from app.crud.billing_communication import crud_billing_communication
-from app.services.ai_resignation_service import ai_resignation_service
+from app.services.billing_communication.ai_resignation_service import ai_resignation_service
 from app.services.billing_scheduler import billing_scheduler
 
 

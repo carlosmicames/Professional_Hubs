@@ -1,26 +1,26 @@
 """
-Servicio de Email usando Postmark para recordatorios de facturación.
+Servicio de Email usando SendGrid para recordatorios de facturación.
 """
 
 import os
 from typing import Optional, Dict
-import requests
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, Email, To, Content
 from datetime import datetime
 
 
-class PostmarkEmailService:
+class SendGridEmailService:
     """
-    Servicio para enviar emails de cobro usando Postmark.
+    Servicio para enviar emails de cobro usando SendGrid.
     """
     
     def __init__(self):
-        """Inicializa servicio de Postmark."""
-        self.api_key = os.getenv("POSTMARK_API_KEY")
-        self.from_email = os.getenv("POSTMARK_FROM_EMAIL", "billing@professionalhubs.com")
-        self.api_url = "https://api.postmarkapp.com/email"
+        """Inicializa servicio de SendGrid."""
+        self.api_key = os.getenv("SENDGRID_API_KEY")
+        self.from_email = os.getenv("SENDGRID_FROM_EMAIL", "billing@professionalhubs.com")
         
         if not self.api_key:
-            print("POSTMARK_API_KEY not configured")
+            print("⚠️  SENDGRID_API_KEY not configured - email features disabled")
     
     def send_payment_reminder(
         self,
@@ -48,7 +48,7 @@ class PostmarkEmailService:
             Dict con resultado del envío
         """
         if not self.api_key:
-            return {"success": False, "error": "Postmark not configured"}
+            return {"success": False, "error": "SendGrid not configured"}
         
         # Seleccionar plantilla según nivel de recordatorio
         if reminder_level == 1:
@@ -68,43 +68,30 @@ class PostmarkEmailService:
                 client_name, invoice_number, amount_due, days_overdue, due_date
             )
         
-        # Preparar request a Postmark
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "X-Postmark-Server-Token": self.api_key
-        }
-        
-        payload = {
-            "From": self.from_email,
-            "To": to_email,
-            "Subject": subject,
-            "HtmlBody": body,
-            "TextBody": self._html_to_text(body),
-            "MessageStream": "outbound"
-        }
-        
         try:
-            response = requests.post(
-                self.api_url,
-                json=payload,
-                headers=headers,
-                timeout=10
+            # Crear mensaje
+            message = Mail(
+                from_email=Email(self.from_email),
+                to_emails=To(to_email),
+                subject=subject,
+                html_content=Content("text/html", body)
             )
             
-            if response.status_code == 200:
-                result = response.json()
+            # Enviar
+            sg = SendGridAPIClient(self.api_key)
+            response = sg.send(message)
+            
+            if response.status_code in [200, 201, 202]:
                 return {
                     "success": True,
-                    "message_id": result.get("MessageID"),
-                    "submitted_at": result.get("SubmittedAt"),
-                    "to": result.get("To")
+                    "message_id": response.headers.get('X-Message-Id'),
+                    "status_code": response.status_code
                 }
             else:
                 return {
                     "success": False,
-                    "error": f"Postmark API error: {response.status_code}",
-                    "details": response.text
+                    "error": f"SendGrid API error: {response.status_code}",
+                    "details": response.body
                 }
         
         except Exception as e:
@@ -333,14 +320,7 @@ class PostmarkEmailService:
 </html>
 """
         return subject, body
-    
-    def _html_to_text(self, html: str) -> str:
-        """Convierte HTML a texto plano para clientes que no soportan HTML."""
-        # Implementación básica - en producción usar librería como html2text
-        import re
-        text = re.sub('<[^<]+?>', '', html)
-        text = re.sub(r'\s+', ' ', text)
-        return text.strip()
 
 
-postmark_service = PostmarkEmailService()
+# Singleton instance
+sendgrid_service = SendGridEmailService()

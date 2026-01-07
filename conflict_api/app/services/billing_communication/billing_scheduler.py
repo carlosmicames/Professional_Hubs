@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models.billing_communication import CommunicationType, CommunicationStatus
 from app.crud.billing_communication import crud_billing_communication
-from app.services.postmark_service import postmark_service
+from app.services.billing_communication.sendgrid_service import sendgrid_service
 from app.services.twilio_sms_service import twilio_sms_service
 
 
