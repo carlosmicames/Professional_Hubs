@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from app.config import get_settings
 from app.routers import firmas, clientes, asuntos, partes_relacionadas, conflictos, billing
 # from app.routers import calls  # Phase 2: AI Call Agent (disabled for now)
-from app.services.billing_scheduler import billing_scheduler
+from app.services.billing_communication.billing_scheduler import billing_scheduler
 
 settings = get_settings()
 

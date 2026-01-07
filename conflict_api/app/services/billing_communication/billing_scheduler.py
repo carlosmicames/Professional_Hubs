@@ -211,7 +211,7 @@ class BillingReminderScheduler:
         
         # Enviar Email
         if invoice.get('client_email'):
-            email_result = postmark_service.send_payment_reminder(
+            email_result = sendgrid_service.send_payment_reminder(
                 to_email=invoice['client_email'],
                 client_name=invoice['client_name'],
                 invoice_number=invoice['invoice_number'],
