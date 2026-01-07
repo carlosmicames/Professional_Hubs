@@ -6,7 +6,6 @@ Usa Anthropic Claude API para sintetizar logs de comunicación.
 import os
 from typing import List, Optional, Dict
 from datetime import datetime
-import anthropic
 
 
 class AIResignationService:
@@ -16,16 +15,22 @@ class AIResignationService:
     """
     
     def __init__(self):
-        """Inicializa cliente de Anthropic."""
+        """Inicializa cliente de Anthropic (lazy loading)."""
+        self._client = None
         self.api_key = os.getenv("ANTHROPIC_API_KEY")
-        
-        if self.api_key:
-            self.client = anthropic.Anthropic(api_key=self.api_key)
-        else:
-            self.client = None
-            print("ANTHROPIC_API_KEY not configured")
-        
-        self.model = "claude-sonnet-4-20250514"  # Usar Sonnet 4 para mejor calidad
+        self.model = "claude-sonnet-4-20250514"
+    
+    @property
+    def client(self):
+        """Lazy initialization of Anthropic client."""
+        if self._client is None and self.api_key:
+            try:
+                import anthropic
+                self._client = anthropic.Anthropic(api_key=self.api_key)
+            except Exception as e:
+                print(f"⚠️  Failed to initialize Anthropic client: {e}")
+                return None
+        return self._client
     
     def generate_resignation_letter(
         self,
@@ -55,7 +60,7 @@ class AIResignationService:
         if not self.client:
             return {
                 "success": False,
-                "error": "Anthropic API not configured"
+                "error": "Anthropic API not configured. Set ANTHROPIC_API_KEY environment variable."
             }
         
         try:

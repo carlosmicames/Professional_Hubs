@@ -1,11 +1,11 @@
-# conflict_api/app/services/call_agent_simple.py
+# conflict_api/app/services/call_agent.py
 """
 AI Agent simplificado - Solo recopila info mínima.
 """
 
 import json
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 import anthropic
 
 
@@ -16,7 +16,9 @@ class SimpleCallAgent:
     """
     
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        # Lazy initialization - don't create client until needed
+        self._client = None
+        self._api_key = os.getenv("ANTHROPIC_API_KEY")
         
         self.system_prompt_es = """Eres la recepcionista virtual de Professional Hubs, un bufete de abogados en Puerto Rico.
 
@@ -92,6 +94,22 @@ Your job is VERY SIMPLE:
 ```
 """
     
+    @property
+    def client(self):
+        """Lazy initialization of Anthropic client."""
+        if self._client is None:
+            if not self._api_key:
+                print("⚠️  ANTHROPIC_API_KEY not set - AI call features disabled")
+                return None
+            
+            try:
+                self._client = anthropic.Anthropic(api_key=self._api_key)
+            except Exception as e:
+                print(f"⚠️  Failed to initialize Anthropic client: {e}")
+                return None
+        
+        return self._client
+    
     def detect_language(self, text: str) -> str:
         """
         Detecta idioma del caller (español o inglés).
@@ -109,7 +127,7 @@ Your job is VERY SIMPLE:
     def process_message(
         self,
         user_message: str,
-        conversation_history: List[Dict] = None,
+        conversation_history: Optional[List[Dict]] = None,
         detected_language: str = "es"
     ) -> Dict:
         """
@@ -117,6 +135,18 @@ Your job is VERY SIMPLE:
         """
         if conversation_history is None:
             conversation_history = []
+        
+        # Check if client is available
+        if not self.client:
+            # Fallback response when API is not configured
+            return {
+                "respuesta" if detected_language == "es" else "response": 
+                    "Lo siento, el servicio de asistencia virtual no está disponible en este momento. Por favor contacte directamente a nuestra oficina." if detected_language == "es" 
+                    else "Sorry, the virtual assistant service is not available at this time. Please contact our office directly.",
+                "solicita_consulta" if detected_language == "es" else "requesting_consultation": False,
+                "conversacion_completa" if detected_language == "es" else "conversation_complete": True,
+                "error": "Anthropic API not configured"
+            }
         
         try:
             system_prompt = self.system_prompt_es if detected_language == "es" else self.system_prompt_en
@@ -153,7 +183,9 @@ Your job is VERY SIMPLE:
         except Exception as e:
             print(f"Error in process_message: {e}")
             return {
-                "respuesta": "Disculpe, tuve un problema. ¿Puede repetir?" if detected_language == "es" else "Sorry, I had an issue. Can you repeat?",
+                "respuesta" if detected_language == "es" else "response": 
+                    "Disculpe, tuve un problema. ¿Puede repetir?" if detected_language == "es" 
+                    else "Sorry, I had an issue. Can you repeat?",
                 "error": str(e)
             }
     
@@ -171,4 +203,5 @@ Your job is VERY SIMPLE:
             }
 
 
+# Singleton instance - will only initialize client when actually used
 simple_agent = SimpleCallAgent()
