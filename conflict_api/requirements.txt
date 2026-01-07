@@ -23,7 +23,7 @@ unidecode==1.3.8
 python-dateutil==2.8.2
 
 # BILLING AUTOMATION DEPENDENCIES 
-anthropic==0.40.0  # Claude AI for AI-powered resignation letters
+anthropic==0.39.0  # Claude AI for AI-powered resignation letters
 apscheduler==3.10.4  # Background task scheduling for automated reminders
 twilio==9.0.4  # SMS notifications via Twilio
 requests==2.31.0  # HTTP requests for Postmark email API
