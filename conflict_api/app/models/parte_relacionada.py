@@ -11,13 +11,14 @@ import enum
 
 class TipoRelacion(str, enum.Enum):
     """Tipos de relación de partes en un asunto legal."""
-    DEMANDANTE = "demandante"
-    DEMANDADO = "demandado"
-    PARTE_CONTRARIA = "parte_contraria"
-    CO_DEMANDADO = "co_demandado"
-    CONYUGE = "conyuge"
-    SUBSIDIARIA = "subsidiaria"
-    EMPRESA_MATRIZ = "empresa_matriz"
+    # FIXED: Values must match PostgreSQL enum (uppercase)
+    DEMANDANTE = "DEMANDANTE"
+    DEMANDADO = "DEMANDADO"
+    PARTE_CONTRARIA = "PARTE_CONTRARIA"
+    CO_DEMANDADO = "CO_DEMANDADO"
+    CONYUGE = "CONYUGE"
+    SUBSIDIARIA = "SUBSIDIARIA"
+    EMPRESA_MATRIZ = "EMPRESA_MATRIZ"
 
 
 class ParteRelacionada(Base):

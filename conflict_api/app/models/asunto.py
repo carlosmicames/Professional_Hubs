@@ -11,10 +11,11 @@ import enum
 
 class EstadoAsunto(str, enum.Enum):
     """Estados posibles de un asunto legal."""
-    ACTIVO = "activo"
-    CERRADO = "cerrado"
-    PENDIENTE = "pendiente"
-    ARCHIVADO = "archivado"
+    # FIXED: Values must match PostgreSQL enum (uppercase)
+    ACTIVO = "ACTIVO"
+    CERRADO = "CERRADO"
+    PENDIENTE = "PENDIENTE"
+    ARCHIVADO = "ARCHIVADO"
 
 
 class Asunto(Base):
