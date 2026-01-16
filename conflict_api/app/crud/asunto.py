@@ -6,7 +6,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
 
 from app.crud.base import CRUDBase
-from app.models.asunto import Asunto, EstadoAsunto
+from app.models.asunto import Asunto
 from app.models.cliente import Cliente
 from app.schemas.asunto import AsuntoCreate, AsuntoUpdate
 
@@ -48,12 +48,12 @@ class CRUDAsunto(CRUDBase[Asunto, AsuntoCreate, AsuntoUpdate]):
         return query.first()
     
     def get_multi_por_firma(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         firm_id: int,
-        skip: int = 0, 
+        skip: int = 0,
         limit: int = 100,
-        estado: Optional[EstadoAsunto] = None,
+        estado: Optional[str] = None,
         include_inactive: bool = False
     ) -> List[Asunto]:
         """

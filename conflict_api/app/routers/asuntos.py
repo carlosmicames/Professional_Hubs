@@ -3,15 +3,17 @@ Endpoints para Asuntos (Matters/Cases).
 Multi-tenant: Todos los endpoints filtran por firma_id del header.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Literal
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_firm_id
 from app.crud import crud_asunto
-from app.models.asunto import EstadoAsunto
 from app.schemas.asunto import AsuntoCreate, AsuntoUpdate, AsuntoResponse
+
+# Valid estado values for query parameter validation
+EstadoAsuntoLiteral = Literal["ACTIVO", "CERRADO", "PENDIENTE", "ARCHIVADO"]
 
 router = APIRouter(
     prefix="/asuntos",
@@ -47,7 +49,7 @@ def crear_asunto(
 def listar_asuntos(
     skip: int = 0,
     limit: int = 100,
-    estado: Optional[EstadoAsunto] = Query(None, description="Filtrar por estado"),
+    estado: Optional[str] = Query(None, description="Filtrar por estado (ACTIVO, CERRADO, PENDIENTE, ARCHIVADO)"),
     db: Session = Depends(get_db),
     firm_id: int = Depends(get_firm_id)
 ):

@@ -10,12 +10,17 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_firm_id
 from app.crud import crud_parte_relacionada
-from app.models.parte_relacionada import TipoRelacion
 from app.schemas.parte_relacionada import (
-    ParteRelacionadaCreate, 
-    ParteRelacionadaUpdate, 
+    ParteRelacionadaCreate,
+    ParteRelacionadaUpdate,
     ParteRelacionadaResponse
 )
+
+# Valid tipo_relacion values
+TIPOS_RELACION = [
+    "DEMANDANTE", "DEMANDADO", "PARTE_CONTRARIA",
+    "CO_DEMANDADO", "CONYUGE", "SUBSIDIARIA", "EMPRESA_MATRIZ"
+]
 
 router = APIRouter(
     prefix="/partes-relacionadas",
@@ -51,7 +56,7 @@ def crear_parte_relacionada(
 def listar_partes_relacionadas(
     skip: int = 0,
     limit: int = 100,
-    tipo_relacion: Optional[TipoRelacion] = Query(None, description="Filtrar por tipo"),
+    tipo_relacion: Optional[str] = Query(None, description="Filtrar por tipo de relacion"),
     db: Session = Depends(get_db),
     firm_id: int = Depends(get_firm_id)
 ):
@@ -166,7 +171,7 @@ def listar_partes_por_asunto(
 @router.get(
     "/tipos/",
     response_model=List[str],
-    summary="Listar tipos de relación disponibles"
+    summary="Listar tipos de relacion disponibles"
 )
 def listar_tipos_relacion():
-    return [tipo.value for tipo in TipoRelacion]
+    return TIPOS_RELACION
