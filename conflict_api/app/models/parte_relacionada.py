@@ -1,17 +1,17 @@
 """
 Modelo de Parte Relacionada (Related Party).
+Uses String column instead of PostgreSQL ENUM for deployment reliability.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Enum, Index
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from app.database import Base
-import enum
 
 
-class TipoRelacion(str, enum.Enum):
+# Python class for validation (not stored in DB as enum)
+class TipoRelacion:
     """Tipos de relación de partes en un asunto legal."""
-    # FIXED: Values must match PostgreSQL enum (uppercase)
     DEMANDANTE = "DEMANDANTE"
     DEMANDADO = "DEMANDADO"
     PARTE_CONTRARIA = "PARTE_CONTRARIA"
@@ -19,6 +19,13 @@ class TipoRelacion(str, enum.Enum):
     CONYUGE = "CONYUGE"
     SUBSIDIARIA = "SUBSIDIARIA"
     EMPRESA_MATRIZ = "EMPRESA_MATRIZ"
+    
+    @classmethod
+    def values(cls):
+        return [
+            cls.DEMANDANTE, cls.DEMANDADO, cls.PARTE_CONTRARIA,
+            cls.CO_DEMANDADO, cls.CONYUGE, cls.SUBSIDIARIA, cls.EMPRESA_MATRIZ
+        ]
 
 
 class ParteRelacionada(Base):
@@ -39,10 +46,12 @@ class ParteRelacionada(Base):
     )
     
     nombre = Column(String(255), nullable=False, comment="Nombre de la parte relacionada")
+    
+    # Using String instead of ENUM - stores same values, no deployment issues
     tipo_relacion = Column(
-        Enum(TipoRelacion), 
+        String(30), 
         nullable=False,
-        comment="Tipo de relación con el asunto"
+        comment="Tipo de relación: DEMANDANTE, DEMANDADO, PARTE_CONTRARIA, CO_DEMANDADO, CONYUGE, SUBSIDIARIA, EMPRESA_MATRIZ"
     )
     
     # Campos de auditoría
@@ -60,4 +69,4 @@ class ParteRelacionada(Base):
     )
     
     def __repr__(self):
-        return f"<ParteRelacionada(id={self.id}, nombre='{self.nombre}', tipo={self.tipo_relacion.value})>"
+        return f"<ParteRelacionada(id={self.id}, nombre='{self.nombre}', tipo={self.tipo_relacion})>"

@@ -1,5 +1,6 @@
 """
 Endpoints para gestión de facturación y recordatorios.
+Updated to use string types instead of PostgreSQL enums.
 """
 
 from app.models.billing_communication import CommunicationType, CommunicationStatus
@@ -8,6 +9,7 @@ from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from pydantic import BaseModel
 
 from app.database import get_db
@@ -90,7 +92,7 @@ def get_dashboard_stats(
     - **danger_zone_count**: Facturas en zona de peligro (60+ días)
     """
     # Query SQL para estadísticas
-    query = """
+    query = text("""
         SELECT 
             COUNT(*) as total_invoices,
             COALESCE(SUM(amount), 0) as total_outstanding,
@@ -99,21 +101,21 @@ def get_dashboard_stats(
             COALESCE(SUM(CASE WHEN CURRENT_DATE - due_date >= 60 THEN 1 ELSE 0 END), 0) as danger_zone_count,
             COALESCE(SUM(CASE WHEN CURRENT_DATE - due_date >= 60 THEN amount ELSE 0 END), 0) as danger_zone_amount
         FROM invoices i
-        JOIN clients c ON i.client_id = c.id
+        JOIN clientes c ON i.client_id = c.id
         WHERE i.status = 'pending'
         AND c.firma_id = :firm_id
         AND i.esta_activo = true
-    """
+    """)
     
     result = db.execute(query, {"firm_id": firm_id}).fetchone()
     
     return DashboardStats(
-        total_outstanding=float(result[1]),
-        overdue_30_plus=int(result[2]),
-        overdue_30_plus_amount=float(result[3]),
-        danger_zone_count=int(result[4]),
-        danger_zone_amount=float(result[5]),
-        total_invoices=int(result[0])
+        total_outstanding=float(result[1]) if result[1] else 0.0,
+        overdue_30_plus=int(result[2]) if result[2] else 0,
+        overdue_30_plus_amount=float(result[3]) if result[3] else 0.0,
+        danger_zone_count=int(result[4]) if result[4] else 0,
+        danger_zone_amount=float(result[5]) if result[5] else 0.0,
+        total_invoices=int(result[0]) if result[0] else 0
     )
 
 
@@ -124,7 +126,7 @@ def get_dashboard_stats(
 )
 def list_overdue_invoices(
     min_days: int = Query(0, description="Mínimo de días de atraso"),
-    max_days: int = Query(None, description="Máximo de días de atraso"),
+    max_days: Optional[int] = Query(None, description="Máximo de días de atraso"),
     db: Session = Depends(get_db),
     firm_id: int = Depends(get_firm_id)
 ):
@@ -135,7 +137,7 @@ def list_overdue_invoices(
     - **max_days**: Filtrar por máximo de días (ej: 59 para excluir danger zone)
     """
     # Construir query con filtros
-    query = """
+    query_str = """
         SELECT 
             i.id,
             i.invoice_number,
@@ -147,7 +149,7 @@ def list_overdue_invoices(
             CURRENT_DATE - i.due_date as days_overdue,
             i.status
         FROM invoices i
-        JOIN clients c ON i.client_id = c.id
+        JOIN clientes c ON i.client_id = c.id
         WHERE i.status = 'pending'
         AND c.firma_id = :firm_id
         AND i.esta_activo = true
@@ -157,12 +159,12 @@ def list_overdue_invoices(
     params = {"firm_id": firm_id, "min_days": min_days}
     
     if max_days:
-        query += " AND CURRENT_DATE - i.due_date <= :max_days"
+        query_str += " AND CURRENT_DATE - i.due_date <= :max_days"
         params["max_days"] = max_days
     
-    query += " ORDER BY days_overdue DESC"
+    query_str += " ORDER BY days_overdue DESC"
     
-    results = db.execute(query, params).fetchall()
+    results = db.execute(text(query_str), params).fetchall()
     
     invoices = []
     for row in results:
@@ -173,7 +175,7 @@ def list_overdue_invoices(
         invoices.append(InvoiceSummary(
             id=row[0],
             invoice_number=row[1],
-            client_name=row[2],
+            client_name=row[2] or "",
             client_email=row[3],
             client_phone=row[4],
             amount=float(row[5]),
@@ -219,8 +221,6 @@ def get_invoice_communications(
     """
     Obtiene historial completo de comunicaciones para una factura.
     """
-    # TODO: Verificar que la factura pertenece al bufete
-    
     logs = crud_billing_communication.get_by_invoice(db, invoice_id)
     
     return {
@@ -229,8 +229,8 @@ def get_invoice_communications(
         "communications": [
             {
                 "id": log.id,
-                "type": log.type.value,
-                "status": log.status.value,
+                "type": log.type,  # String now
+                "status": log.status,  # String now
                 "sent_at": log.sent_at.isoformat(),
                 "days_overdue_when_sent": log.days_overdue_when_sent,
                 "reminder_sequence": log.reminder_sequence,
@@ -268,7 +268,7 @@ def generate_resignation_letter(
     - Debe existir historial de comunicaciones
     """
     # Obtener información de la factura
-    query = """
+    query = text("""
         SELECT 
             i.invoice_number,
             i.amount,
@@ -276,11 +276,11 @@ def generate_resignation_letter(
             c.nombre || ' ' || COALESCE(c.apellido, '') as client_name,
             CURRENT_DATE - i.due_date as days_overdue
         FROM invoices i
-        JOIN clients c ON i.client_id = c.id
+        JOIN clientes c ON i.client_id = c.id
         WHERE i.id = :invoice_id
         AND c.firma_id = :firm_id
         AND i.esta_activo = true
-    """
+    """)
     
     result = db.execute(query, {"invoice_id": invoice_id, "firm_id": firm_id}).fetchone()
     
@@ -311,8 +311,8 @@ def generate_resignation_letter(
     # Convertir logs a formato para IA
     log_dicts = [
         {
-            "type": log.type.value,
-            "status": log.status.value,
+            "type": log.type,
+            "status": log.status,
             "sent_at": log.sent_at.isoformat(),
             "days_overdue_when_sent": log.days_overdue_when_sent
         }

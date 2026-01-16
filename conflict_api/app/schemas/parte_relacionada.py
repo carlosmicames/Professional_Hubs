@@ -1,17 +1,24 @@
 """
 Schemas para Parte Relacionada (Related Party).
+Updated to use string literals instead of PostgreSQL ENUM.
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Literal
 from pydantic import BaseModel, Field
-from app.models.parte_relacionada import TipoRelacion
+
+
+# Valid tipo_relacion values (matches model)
+TipoRelacionType = Literal[
+    "DEMANDANTE", "DEMANDADO", "PARTE_CONTRARIA", 
+    "CO_DEMANDADO", "CONYUGE", "SUBSIDIARIA", "EMPRESA_MATRIZ"
+]
 
 
 class ParteRelacionadaBase(BaseModel):
     """Campos base de Parte Relacionada."""
     nombre: str = Field(..., min_length=1, max_length=255, description="Nombre de la parte")
-    tipo_relacion: TipoRelacion = Field(..., description="Tipo de relación con el asunto")
+    tipo_relacion: TipoRelacionType = Field(..., description="Tipo de relación con el asunto")
 
 
 class ParteRelacionadaCreate(ParteRelacionadaBase):
@@ -22,7 +29,7 @@ class ParteRelacionadaCreate(ParteRelacionadaBase):
 class ParteRelacionadaUpdate(BaseModel):
     """Schema para actualizar una parte relacionada."""
     nombre: Optional[str] = Field(None, min_length=1, max_length=255)
-    tipo_relacion: Optional[TipoRelacion] = None
+    tipo_relacion: Optional[TipoRelacionType] = None
 
 
 class ParteRelacionadaResponse(BaseModel):
@@ -30,7 +37,7 @@ class ParteRelacionadaResponse(BaseModel):
     id: int
     asunto_id: int
     nombre: str
-    tipo_relacion: TipoRelacion
+    tipo_relacion: str  # String instead of enum
     esta_activo: bool
     creado_en: datetime
     actualizado_en: datetime

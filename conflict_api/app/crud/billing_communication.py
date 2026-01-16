@@ -1,5 +1,6 @@
 """
 CRUD para Billing Communication Logs.
+Updated to use string types instead of enums.
 """
 
 from typing import List, Optional
@@ -15,7 +16,7 @@ from pydantic import BaseModel
 class BillingCommunicationCreate(BaseModel):
     """Schema para crear log de comunicación."""
     invoice_id: int
-    type: CommunicationType
+    type: str  # "EMAIL", "SMS", etc.
     message_body: str
     subject: Optional[str] = None
     days_overdue_when_sent: int
@@ -24,7 +25,7 @@ class BillingCommunicationCreate(BaseModel):
 
 class BillingCommunicationUpdate(BaseModel):
     """Schema para actualizar log de comunicación."""
-    status: Optional[CommunicationStatus] = None
+    status: Optional[str] = None  # "SENT", "DELIVERED", etc.
     delivered_at: Optional[datetime] = None
     read_at: Optional[datetime] = None
     external_id: Optional[str] = None
@@ -79,7 +80,7 @@ class CRUDBillingCommunication(CRUDBase[BillingCommunicationLog, BillingCommunic
         self,
         db: Session,
         invoice_id: int,
-        type: Optional[CommunicationType] = None
+        type: Optional[str] = None  # Changed from CommunicationType to str
     ) -> int:
         """
         Cuenta las comunicaciones enviadas para una factura.
@@ -98,12 +99,12 @@ class CRUDBillingCommunication(CRUDBase[BillingCommunicationLog, BillingCommunic
         self,
         db: Session,
         invoice_id: int,
-        type: CommunicationType,
+        type: str,  # Changed from CommunicationType to str
         message_body: str,
         days_overdue: int,
         reminder_sequence: int,
         subject: Optional[str] = None,
-        status: CommunicationStatus = CommunicationStatus.SENT,
+        status: str = CommunicationStatus.SENT,  # Default to "SENT" string
         external_id: Optional[str] = None
     ) -> BillingCommunicationLog:
         """
@@ -132,7 +133,7 @@ class CRUDBillingCommunication(CRUDBase[BillingCommunicationLog, BillingCommunic
         self,
         db: Session,
         log_id: int,
-        status: CommunicationStatus,
+        status: str,  # Changed from CommunicationStatus to str
         delivered_at: Optional[datetime] = None,
         error_message: Optional[str] = None
     ) -> Optional[BillingCommunicationLog]:

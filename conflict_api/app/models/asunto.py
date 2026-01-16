@@ -1,21 +1,25 @@
 """
 Modelo de Asunto (Matter/Case).
+Uses String column instead of PostgreSQL ENUM for deployment reliability.
 """
 
 from datetime import datetime, date
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Date, Enum, Index
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Date, Index
 from sqlalchemy.orm import relationship
 from app.database import Base
-import enum
 
 
-class EstadoAsunto(str, enum.Enum):
+# Python enum for validation (not stored in DB as enum)
+class EstadoAsunto:
     """Estados posibles de un asunto legal."""
-    # FIXED: Values must match PostgreSQL enum (uppercase)
     ACTIVO = "ACTIVO"
     CERRADO = "CERRADO"
     PENDIENTE = "PENDIENTE"
     ARCHIVADO = "ARCHIVADO"
+    
+    @classmethod
+    def values(cls):
+        return [cls.ACTIVO, cls.CERRADO, cls.PENDIENTE, cls.ARCHIVADO]
 
 
 class Asunto(Base):
@@ -37,11 +41,13 @@ class Asunto(Base):
     
     nombre_asunto = Column(String(500), nullable=False, comment="Nombre o descripción del asunto")
     fecha_apertura = Column(Date, default=date.today, nullable=False, comment="Fecha de apertura")
+    
+    # Using String instead of ENUM - stores same values, no deployment issues
     estado = Column(
-        Enum(EstadoAsunto), 
+        String(20), 
         default=EstadoAsunto.ACTIVO, 
         nullable=False,
-        comment="Estado actual del asunto"
+        comment="Estado actual del asunto: ACTIVO, CERRADO, PENDIENTE, ARCHIVADO"
     )
     
     # Campos de auditoría
@@ -60,4 +66,4 @@ class Asunto(Base):
     )
     
     def __repr__(self):
-        return f"<Asunto(id={self.id}, nombre='{self.nombre_asunto[:50]}...', estado={self.estado.value})>"
+        return f"<Asunto(id={self.id}, nombre='{self.nombre_asunto[:50]}...', estado={self.estado})>"

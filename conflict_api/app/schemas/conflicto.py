@@ -1,10 +1,10 @@
 """
 Schemas para búsqueda de Conflictos de Interés.
+Updated to use string instead of PostgreSQL ENUM.
 """
 
 from typing import List, Optional
 from pydantic import BaseModel, Field
-from app.models.asunto import EstadoAsunto
 
 
 class BusquedaConflicto(BaseModel):
@@ -39,7 +39,7 @@ class ConflictoEncontrado(BaseModel):
     cliente_nombre: str = Field(..., description="Nombre completo del cliente")
     asunto_id: int = Field(..., description="ID del asunto")
     asunto_nombre: str = Field(..., description="Nombre del asunto")
-    estado_asunto: EstadoAsunto = Field(..., description="Estado del asunto")
+    estado_asunto: str = Field(..., description="Estado del asunto: ACTIVO, CERRADO, PENDIENTE, ARCHIVADO")
     tipo_coincidencia: str = Field(..., description="Tipo de coincidencia encontrada")
     similitud_score: float = Field(..., ge=0.0, le=100.0, description="Porcentaje de similitud (0-100)")
     nivel_confianza: str = Field(..., description="Nivel de confianza: 'alta' (>=90%), 'media' (70-89%)")
@@ -70,8 +70,11 @@ class ResultadoConflicto(BaseModel):
                         "cliente_nombre": "Juan García",
                         "asunto_id": 5,
                         "asunto_nombre": "García vs. Pérez",
-                        "estado_asunto": "activo",
-                        "tipo_coincidencia": "cliente_existente"
+                        "estado_asunto": "ACTIVO",
+                        "tipo_coincidencia": "cliente_existente",
+                        "similitud_score": 95.5,
+                        "nivel_confianza": "alta",
+                        "campo_coincidente": "cliente_nombre"
                     }
                 ],
                 "mensaje": "Se encontraron 2 posibles conflictos de interés"

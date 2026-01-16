@@ -1,30 +1,39 @@
 """
 Modelo de Billing Communication Logs.
 Rastrea todas las comunicaciones de cobro enviadas a clientes.
+Uses String columns instead of PostgreSQL ENUMs for deployment reliability.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Enum, Index
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from app.database import Base
-import enum
 
 
-class CommunicationType(str, enum.Enum):
+# Python classes for validation (not stored in DB as enum)
+class CommunicationType:
     """Tipos de comunicación de cobro."""
-    EMAIL = "email"
-    SMS = "sms"
-    PHONE_CALL = "phone_call"
-    LETTER = "letter"
+    EMAIL = "EMAIL"
+    SMS = "SMS"
+    PHONE_CALL = "PHONE_CALL"
+    LETTER = "LETTER"
+    
+    @classmethod
+    def values(cls):
+        return [cls.EMAIL, cls.SMS, cls.PHONE_CALL, cls.LETTER]
 
 
-class CommunicationStatus(str, enum.Enum):
+class CommunicationStatus:
     """Estado de la comunicación."""
-    SENT = "sent"
-    DELIVERED = "delivered"
-    FAILED = "failed"
-    BOUNCED = "bounced"
-    READ = "read"
+    SENT = "SENT"
+    DELIVERED = "DELIVERED"
+    FAILED = "FAILED"
+    BOUNCED = "BOUNCED"
+    READ = "READ"
+    
+    @classmethod
+    def values(cls):
+        return [cls.SENT, cls.DELIVERED, cls.FAILED, cls.BOUNCED, cls.READ]
 
 
 class BillingCommunicationLog(Base):
@@ -44,28 +53,28 @@ class BillingCommunicationLog(Base):
         comment="ID de la factura"
     )
     
-    # Tipo y contenido
+    # Using String instead of ENUM - no deployment issues
     type = Column(
-        Enum(CommunicationType),
+        String(20),
         nullable=False,
-        comment="Tipo de comunicación (email/sms)"
+        comment="Tipo de comunicación: EMAIL, SMS, PHONE_CALL, LETTER"
     )
     message_body = Column(Text, nullable=False, comment="Contenido del mensaje enviado")
     subject = Column(String(500), nullable=True, comment="Asunto (para emails)")
     
-    # Estado y tracking
+    # Using String instead of ENUM
     status = Column(
-        Enum(CommunicationStatus),
+        String(20),
         default=CommunicationStatus.SENT,
         nullable=False,
-        comment="Estado de la comunicación"
+        comment="Estado: SENT, DELIVERED, FAILED, BOUNCED, READ"
     )
     sent_at = Column(DateTime, nullable=False, comment="Fecha/hora de envío")
     delivered_at = Column(DateTime, nullable=True, comment="Fecha/hora de entrega")
     read_at = Column(DateTime, nullable=True, comment="Fecha/hora de lectura (si disponible)")
     
     # IDs externos para tracking
-    external_id = Column(String(255), nullable=True, comment="ID de Twilio/Postmark")
+    external_id = Column(String(255), nullable=True, comment="ID de Twilio/SendGrid")
     error_message = Column(Text, nullable=True, comment="Mensaje de error si falló")
     
     # Metadatos
@@ -77,9 +86,6 @@ class BillingCommunicationLog(Base):
     creado_en = Column(DateTime, default=datetime.utcnow, nullable=False)
     actualizado_en = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
-    # Relaciones
-    # invoice = relationship("Invoice", back_populates="communication_logs")
-    
     # Índices para búsqueda rápida
     __table_args__ = (
         Index('ix_billing_comms_invoice_date', 'invoice_id', 'sent_at'),
@@ -88,4 +94,4 @@ class BillingCommunicationLog(Base):
     )
     
     def __repr__(self):
-        return f"<BillingCommunicationLog(id={self.id}, invoice_id={self.invoice_id}, type={self.type.value}, sent_at='{self.sent_at}')>"
+        return f"<BillingCommunicationLog(id={self.id}, invoice_id={self.invoice_id}, type={self.type}, sent_at='{self.sent_at}')>"

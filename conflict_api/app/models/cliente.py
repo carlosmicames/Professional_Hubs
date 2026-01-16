@@ -1,5 +1,6 @@
 """
 Modelo de Cliente.
+Updated with email and telefono fields for billing automation.
 """
 
 from datetime import datetime
@@ -32,6 +33,10 @@ class Cliente(Base):
     
     # Datos de empresa
     nombre_empresa = Column(String(255), nullable=True, comment="Nombre de empresa/corporación")
+    
+    # Contacto (para billing automation)
+    email = Column(String(255), nullable=True, comment="Email para facturación y comunicaciones")
+    telefono = Column(String(50), nullable=True, comment="Teléfono para SMS de cobro")
     
     # Campos de auditoría
     esta_activo = Column(Boolean, default=True, nullable=False, comment="Soft delete flag")

@@ -1,10 +1,11 @@
 """
 Schemas para Cliente.
+Updated with email and telefono fields for billing automation.
 """
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, EmailStr
 
 
 class ClienteBase(BaseModel):
@@ -13,6 +14,8 @@ class ClienteBase(BaseModel):
     apellido: Optional[str] = Field(None, max_length=100, description="Primer apellido del cliente individual")
     segundo_apellido: Optional[str] = Field(None, max_length=100, description="Segundo apellido (común en Puerto Rico)")
     nombre_empresa: Optional[str] = Field(None, max_length=255, description="Nombre de empresa/corporación")
+    email: Optional[str] = Field(None, max_length=255, description="Email para facturación")
+    telefono: Optional[str] = Field(None, max_length=50, description="Teléfono para SMS de cobro")
     
     @model_validator(mode='after')
     def validar_tipo_cliente(self):
@@ -40,6 +43,8 @@ class ClienteUpdate(BaseModel):
     apellido: Optional[str] = Field(None, max_length=100, description="Primer apellido del cliente individual")
     segundo_apellido: Optional[str] = Field(None, max_length=100, description="Segundo apellido (común en Puerto Rico)")
     nombre_empresa: Optional[str] = Field(None, max_length=255, description="Nombre de empresa/corporación")
+    email: Optional[str] = Field(None, max_length=255, description="Email para facturación")
+    telefono: Optional[str] = Field(None, max_length=50, description="Teléfono para SMS de cobro")
 
 
 class ClienteResponse(BaseModel):
@@ -50,6 +55,8 @@ class ClienteResponse(BaseModel):
     apellido: Optional[str]
     segundo_apellido: Optional[str]
     nombre_empresa: Optional[str]
+    email: Optional[str]
+    telefono: Optional[str]
     nombre_completo: str = Field(..., description="Nombre completo calculado")
     esta_activo: bool
     creado_en: datetime
