@@ -175,7 +175,7 @@ with tab_persona:
     
     st.markdown("")  # Spacer
     
-    if st.button("🔍 Verificar Conflicto", key="btn_persona", use_container_width=False):
+    if st.button("🔍 Verificar Conflicto", key="btn_persona", width='content'):
         if not nombre and not apellido:
             st.error("⚠️ Debe ingresar al menos el nombre o apellido")
         else:
@@ -201,7 +201,7 @@ with tab_empresa:
     
     st.markdown("")  # Spacer
     
-    if st.button("🔍 Verificar Conflicto", key="btn_empresa", use_container_width=False):
+    if st.button("🔍 Verificar Conflicto", key="btn_empresa", width='content'):
         if not nombre_empresa:
             st.error("⚠️ Debe ingresar el nombre de la empresa")
         else:

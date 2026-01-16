@@ -11,6 +11,9 @@ import pandas as pd
 from datetime import datetime, date
 from utils.api_client import api_client
 
+st.cache_data.clear()
+st.cache_resource.clear()
+
 # ============================================================================
 # CONSTANTS
 # ============================================================================
@@ -423,7 +426,7 @@ def render_sidebar():
             if st.button(
                 f"{item_name}",
                 key=f"nav_{item_name}",
-                use_container_width=True,
+                width='stretch',
                 type="primary" if is_active else "secondary"
             ):
                 st.session_state.current_page = item_name
@@ -535,22 +538,25 @@ CLIENTES_SECTIONS = [
 ]
 
 def render_clientes():
+    """Render the Clientes page with proper navigation pills."""
     st.markdown("""
     <div class="main-header">
         <h1>Clientes</h1>
     </div>
     """, unsafe_allow_html=True)
 
-    # Pill navigation using columns and buttons
-    cols = st.columns(len(CLIENTES_SECTIONS))
+    # FIXED: Use 7 equal columns (not dynamic len())
+    cols = st.columns(7)
 
     for i, section in enumerate(CLIENTES_SECTIONS):
         with cols[i]:
             is_active = st.session_state.clientes_section == section
+            
+            # FIXED: width='stretch' instead of width='stretch'
             if st.button(
                 section,
                 key=f"pill_{section}",
-                use_container_width=True,
+                width='stretch',
                 type="primary" if is_active else "secondary"
             ):
                 st.session_state.clientes_section = section
@@ -580,12 +586,24 @@ def render_clientes():
 # SECTION: EMPRESA (Company Settings)
 # ============================================================================
 
-def render_empresa_section():
+def render_def render_empresa_section():
+    """Render the Empresa configuration section."""
     st.subheader("Configuracion de Empresa")
 
-    # Load existing data
-    result = api_client.get_firma()
-    firma_data = result.get("data") if result.get("success") else None
+    # Load existing data with error handling
+    try:
+        result = api_client.get_firma()
+        firma_data = result.get("data") if result.get("success") else None
+    except AttributeError as e:
+        st.error("❌ Error al cargar datos de la empresa")
+        st.warning("Por favor, recarga la página. Si el problema persiste, contacta soporte.")
+        with st.expander("Ver detalles técnicos"):
+            st.code(f"AttributeError: {str(e)}", language="python")
+            st.info("💡 Posible causa: API client no sincronizado. Intenta limpiar caché de Streamlit.")
+        return
+    except Exception as e:
+        st.error(f"Error inesperado: {str(e)}")
+        return
 
     with st.form("empresa_form"):
         col1, col2 = st.columns(2)
@@ -609,29 +627,33 @@ def render_empresa_section():
                 value=firma_data.get("telefono", "") if firma_data else "",
                 key="empresa_telefono"
             )
-            direccion_postal = st.text_area(
-                "Direccion Postal",
-                value=firma_data.get("direccion_postal", "") if firma_data else "",
-                key="empresa_direccion_postal",
-                height=100
+            email = st.text_input(
+                "Email de Contacto",
+                value=firma_data.get("email", "") if firma_data else "",
+                key="empresa_email"
             )
 
-        col1, col2, col3 = st.columns([2, 2, 1])
-        with col3:
-            submitted = st.form_submit_button("Guardar Cambios", use_container_width=True)
-
+        # FIXED: width='stretch' instead of width='stretch'
+        submitted = st.form_submit_button("💾 Guardar Cambios", width='stretch')
+        
         if submitted:
-            update_data = {
+            data = {
                 "nombre": nombre,
                 "direccion": direccion,
-                "direccion_postal": direccion_postal,
-                "telefono": telefono
+                "telefono": telefono,
+                "email": email
             }
-            result = api_client.update_firma(update_data)
-            if result.get("success"):
-                st.success("Datos de empresa guardados exitosamente")
-            else:
-                st.error(f"Error: {result.get('error', 'Error desconocido')}")
+            
+            try:
+                result = api_client.update_firma(data)
+                
+                if result.get("success"):
+                    st.success("✅ Configuracion de empresa actualizada exitosamente!")
+                    st.rerun()
+                else:
+                    st.error(f"❌ Error al guardar: {result.get('error', 'Error desconocido')}")
+            except Exception as e:
+                st.error(f"❌ Error al guardar: {str(e)}")
 
 # ============================================================================
 # SECTION: PERFIL (Profile Settings)
@@ -750,7 +772,7 @@ def render_perfil_section():
 
         col1, col2, col3 = st.columns([2, 2, 1])
         with col3:
-            submitted = st.form_submit_button("Guardar Cambios", use_container_width=True)
+            submitted = st.form_submit_button("Guardar Cambios", width='stretch')
 
         if submitted:
             update_data = {
@@ -823,59 +845,104 @@ def render_perfil_section():
 # ============================================================================
 
 def render_estudios_section():
-    st.subheader("Formacion Academica")
+    """Render the Estudios (education) section."""
+    st.subheader("📚 Formacion Academica")
 
-    # Load existing data
-    result = api_client.get_estudios()
-    estudios_data = result.get("data") if result.get("success") else None
+    # Load existing data with error handling
+    try:
+        result = api_client.get_estudios()
+        estudios_data = result.get("data") if result.get("success") else None
+    except AttributeError as e:
+        st.error("❌ Error al cargar datos de estudios")
+        st.warning("Por favor, recarga la página. Si el problema persiste, contacta soporte.")
+        with st.expander("Ver detalles técnicos"):
+            st.code(f"AttributeError: {str(e)}", language="python")
+            st.info("💡 Posible causa: API client no sincronizado. Intenta limpiar caché de Streamlit.")
+        return
+    except Exception as e:
+        st.error(f"Error inesperado: {str(e)}")
+        return
 
     with st.form("estudios_form"):
-        st.markdown("**Educacion Universitaria**")
+        st.markdown("### 🎓 Educación Legal")
         col1, col2 = st.columns(2)
+
         with col1:
-            universidad = st.text_input(
-                "Universidad",
-                value=estudios_data.get("universidad", "") if estudios_data else "",
-                key="estudios_universidad"
+            universidad_jd = st.text_input(
+                "Universidad (Juris Doctor)",
+                value=estudios_data.get("universidad_jd", "") if estudios_data else "",
+                key="universidad_jd",
+                placeholder="Ej: Universidad Interamericana"
             )
-        with col2:
-            ano_graduacion = st.text_input(
-                "Ano de Graduacion",
-                value=estudios_data.get("ano_graduacion", "") if estudios_data else "",
-                key="estudios_ano"
+            ano_graduacion_jd = st.number_input(
+                "Año de Graduación (JD)",
+                min_value=1950,
+                max_value=2030,
+                value=estudios_data.get("ano_graduacion_jd", 2020) if estudios_data else 2020,
+                key="ano_graduacion_jd"
             )
 
-        st.markdown("**Escuela de Derecho**")
-        col1, col2 = st.columns(2)
-        with col1:
-            escuela_derecho = st.text_input(
-                "Escuela de Derecho",
-                value=estudios_data.get("escuela_derecho", "") if estudios_data else "",
-                key="estudios_escuela"
-            )
         with col2:
-            ano_graduacion_derecho = st.text_input(
-                "Ano de Graduacion (Derecho)",
-                value=estudios_data.get("ano_graduacion_derecho", "") if estudios_data else "",
-                key="estudios_ano_derecho"
+            universidad_llm = st.text_input(
+                "Universidad (LL.M.) - Opcional",
+                value=estudios_data.get("universidad_llm", "") if estudios_data else "",
+                key="universidad_llm",
+                placeholder="Ej: Harvard Law School"
+            )
+            ano_graduacion_llm = st.number_input(
+                "Año de Graduación (LL.M.)",
+                min_value=1950,
+                max_value=2030,
+                value=estudios_data.get("ano_graduacion_llm") if estudios_data and estudios_data.get("ano_graduacion_llm") else 2020,
+                key="ano_graduacion_llm"
             )
 
-        col1, col2, col3 = st.columns([2, 2, 1])
+        st.markdown("---")
+        st.markdown("### ⚖️ Licencias Profesionales")
+        
+        col3, col4 = st.columns(2)
+
         with col3:
-            submitted = st.form_submit_button("Guardar Cambios", use_container_width=True)
+            num_colegiacion_pr = st.text_input(
+                "Número de Colegiación (Puerto Rico)",
+                value=estudios_data.get("num_colegiacion_pr", "") if estudios_data else "",
+                key="num_colegiacion_pr",
+                placeholder="Ej: 12345"
+            )
 
+        with col4:
+            otras_licencias = st.text_area(
+                "Otras Jurisdicciones",
+                value=estudios_data.get("otras_licencias", "") if estudios_data else "",
+                key="otras_licencias",
+                height=100,
+                placeholder="Ej: NY Bar #123456, TX Bar #789012",
+                help="Lista las licencias de otras jurisdicciones, separadas por comas o saltos de línea"
+            )
+
+        # FIXED: width='stretch' instead of width='stretch'
+        submitted = st.form_submit_button("💾 Guardar Estudios", width='stretch')
+        
         if submitted:
-            update_data = {
-                "universidad": universidad or None,
-                "ano_graduacion": ano_graduacion or None,
-                "escuela_derecho": escuela_derecho or None,
-                "ano_graduacion_derecho": ano_graduacion_derecho or None
+            data = {
+                "universidad_jd": universidad_jd,
+                "ano_graduacion_jd": ano_graduacion_jd,
+                "universidad_llm": universidad_llm if universidad_llm else None,
+                "ano_graduacion_llm": ano_graduacion_llm if universidad_llm else None,
+                "num_colegiacion_pr": num_colegiacion_pr,
+                "otras_licencias": otras_licencias if otras_licencias else None
             }
-            result = api_client.update_estudios(update_data)
-            if result.get("success"):
-                st.success("Estudios guardados exitosamente")
-            else:
-                st.error(f"Error: {result.get('error', 'Error desconocido')}")
+            
+            try:
+                result = api_client.update_estudios(data)
+                
+                if result.get("success"):
+                    st.success("✅ Estudios actualizados exitosamente!")
+                    st.rerun()
+                else:
+                    st.error(f"❌ Error al guardar: {result.get('error', 'Error desconocido')}")
+            except Exception as e:
+                st.error(f"❌ Error al guardar: {str(e)}")
 
 # ============================================================================
 # SECTION: AREAS DE PRACTICA (Practice Areas)
@@ -905,7 +972,7 @@ def render_areas_practica_section():
 
         col1, col2, col3 = st.columns([2, 2, 1])
         with col3:
-            submitted = st.form_submit_button("Guardar Cambios", use_container_width=True)
+            submitted = st.form_submit_button("Guardar Cambios", width='stretch')
 
         if submitted:
             result = api_client.update_areas_practica(selected_areas)
@@ -951,7 +1018,7 @@ def render_ubicacion_section():
 
         col1, col2, col3 = st.columns([2, 2, 1])
         with col3:
-            submitted = st.form_submit_button("Guardar Cambios", use_container_width=True)
+            submitted = st.form_submit_button("Guardar Cambios", width='stretch')
 
         if submitted:
             update_data = {
@@ -1048,9 +1115,9 @@ def render_planes_section():
             """, unsafe_allow_html=True)
 
             if is_current:
-                st.button("Plan Actual", key=f"plan_{plan['name']}", disabled=True, use_container_width=True)
+                st.button("Plan Actual", key=f"plan_{plan['name']}", disabled=True, width='stretch')
             else:
-                if st.button(f"Seleccionar", key=f"plan_{plan['name']}", use_container_width=True):
+                if st.button(f"Seleccionar", key=f"plan_{plan['name']}", width='stretch'):
                     result = api_client.update_planes(plan["name"])
                     if result.get("success"):
                         st.success(f"Plan cambiado a {plan['name']}")
@@ -1095,7 +1162,7 @@ def render_mis_clientes_section():
         # Editable table (hide id column from display)
         edited_df = st.data_editor(
             df,
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
             num_rows="fixed",
             column_config={
@@ -1117,7 +1184,7 @@ def render_mis_clientes_section():
         # Guardar Cambios button
         col1, col2, col3 = st.columns([2, 2, 1])
         with col3:
-            if st.button("Guardar Cambios", key="save_clients", use_container_width=True):
+            if st.button("Guardar Cambios", key="save_clients", width='stretch'):
                 # Find modified rows and build update payload
                 updates = []
                 for idx, row in edited_df.iterrows():
@@ -1164,7 +1231,7 @@ def render_mis_clientes_section():
             "Nombre", "Apellido", "Empresa", "Correo", "Telefono",
             "Direccion", "Direccion Postal", "Facturas Pendientes", "Conflicto Potencial"
         ])
-        st.data_editor(df, use_container_width=True, hide_index=True, num_rows="dynamic")
+        st.data_editor(df, width='stretch', hide_index=True, num_rows="dynamic")
 
     st.markdown('<div class="custom-divider"></div>', unsafe_allow_html=True)
 
@@ -1203,7 +1270,7 @@ def render_mis_clientes_section():
         # Submit button (right-aligned via columns)
         col1, col2, col3 = st.columns([2, 2, 1])
         with col3:
-            submitted = st.form_submit_button("Crear Cliente", use_container_width=True)
+            submitted = st.form_submit_button("Crear Cliente", width='stretch')
 
         if submitted:
             if not email or not nombre or not apellido or not direccion or not telefono:
@@ -1240,7 +1307,7 @@ def render_mis_casos():
     # Right-aligned "Crear Nuevo" button
     col1, col2, col3 = st.columns([4, 1, 1])
     with col3:
-        if st.button("Crear Nuevo", use_container_width=True):
+        if st.button("Crear Nuevo", width='stretch'):
             st.session_state.show_new_case_form = True
 
     # Fetch cases from API
@@ -1299,7 +1366,7 @@ def render_mis_casos():
 
     st.data_editor(
         paginated_df,
-        use_container_width=True,
+        width='stretch',
         hide_index=True,
         num_rows="fixed"
     )
@@ -1356,13 +1423,13 @@ def render_agenda():
     col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
 
     with col2:
-        st.button("Conectar", use_container_width=True, help="Conectar con Google Calendar")
+        st.button("Conectar", width='stretch', help="Conectar con Google Calendar")
     with col3:
-        st.button("+ Agregar Evento", use_container_width=True)
+        st.button("+ Agregar Evento", width='stretch')
     with col4:
-        st.button("Compartir Horario", use_container_width=True)
+        st.button("Compartir Horario", width='stretch')
     with col5:
-        st.button("Configurar Horario", use_container_width=True)
+        st.button("Configurar Horario", width='stretch')
 
     st.markdown('<div class="custom-divider"></div>', unsafe_allow_html=True)
 
@@ -1372,7 +1439,7 @@ def render_agenda():
 
     for i, view in enumerate(view_options):
         with [col1, col2, col3, col4][i]:
-            if st.button(view, key=f"view_{view}", use_container_width=True,
+            if st.button(view, key=f"view_{view}", width='stretch',
                         type="primary" if st.session_state.agenda_view == view else "secondary"):
                 st.session_state.agenda_view = view
                 st.rerun()
