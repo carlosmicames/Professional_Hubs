@@ -8,8 +8,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
+from fastapi.staticfiles import StaticFiles
+import os
+
 from app.config import get_settings
 from app.routers import firmas, clientes, asuntos, partes_relacionadas, conflictos, billing
+from app.routers import firm_settings, uploads
 # from app.routers import calls  # Phase 2: AI Call Agent (disabled for now)
 from app.services.billing_communication.billing_scheduler import billing_scheduler
 
@@ -101,6 +105,25 @@ app.include_router(
     prefix=f"/api/{settings.api_version}",
     tags=["Billing & Collections"]
 )
+
+# NEW: Firm settings routers (profile, estudios, areas, ubicacion, planes)
+app.include_router(
+    firm_settings.router,
+    prefix=f"/api/{settings.api_version}",
+    tags=["Firm Settings"]
+)
+
+# NEW: File uploads router
+app.include_router(
+    uploads.router,
+    prefix=f"/api/{settings.api_version}",
+    tags=["Uploads"]
+)
+
+# Mount static files for uploads
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 
 @app.get("/")

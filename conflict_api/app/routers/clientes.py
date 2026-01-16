@@ -1,6 +1,7 @@
 """
 Endpoints para Clientes.
 Multi-tenant: Todos los endpoints filtran por firma_id del header.
+Updated with bulk_update endpoint for Professional Hubs.
 """
 
 from typing import List
@@ -10,7 +11,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_firm_id
 from app.crud import crud_cliente
-from app.schemas.cliente import ClienteCreate, ClienteUpdate, ClienteResponse
+from app.schemas.cliente import (
+    ClienteCreate, ClienteUpdate, ClienteResponse,
+    ClienteBulkUpdateRequest
+)
 
 router = APIRouter(
     prefix="/clientes",
@@ -199,3 +203,37 @@ def buscar_clientes(
         apellido=apellido,
         nombre_empresa=nombre_empresa
     )
+
+
+@router.post(
+    "/bulk-update",
+    response_model=List[ClienteResponse],
+    summary="Actualizar multiples clientes",
+    description="Actualiza multiples clientes en una sola operacion (Guardar Cambios)."
+)
+def bulk_update_clientes(
+    bulk_update: ClienteBulkUpdateRequest,
+    db: Session = Depends(get_db),
+    firm_id: int = Depends(get_firm_id)
+):
+    """
+    Bulk update multiple clients at once.
+    Used by "Guardar Cambios" button in the UI.
+    """
+    updated_clients = []
+
+    for item in bulk_update.updates:
+        cliente = crud_cliente.get(db=db, id=item.id, firm_id=firm_id)
+        if cliente is None:
+            continue  # Skip non-existent clients
+
+        # Build update data from non-None fields
+        update_data = item.model_dump(exclude={'id'}, exclude_unset=True)
+        update_data = {k: v for k, v in update_data.items() if v is not None}
+
+        if update_data:
+            update_schema = ClienteUpdate(**update_data)
+            updated = crud_cliente.update(db=db, db_obj=cliente, obj_in=update_schema)
+            updated_clients.append(updated)
+
+    return updated_clients

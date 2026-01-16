@@ -1,15 +1,19 @@
 """
 Schemas para Firma (Bufete).
+Updated with additional company fields for Professional Hubs.
 """
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class FirmaBase(BaseModel):
     """Campos base de Firma."""
-    nombre: str = Field(..., min_length=1, max_length=255, description="Nombre del bufete")
+    nombre: Optional[str] = Field(None, max_length=255, description="Nombre del bufete/empresa")
+    direccion: Optional[str] = Field(None, max_length=500, description="Direccion fisica")
+    direccion_postal: Optional[str] = Field(None, max_length=500, description="Direccion postal")
+    telefono: Optional[str] = Field(None, max_length=50, description="Telefono")
 
 
 class FirmaCreate(FirmaBase):
@@ -18,16 +22,22 @@ class FirmaCreate(FirmaBase):
 
 
 class FirmaUpdate(BaseModel):
-    """Schema para actualizar una firma."""
-    nombre: Optional[str] = Field(None, min_length=1, max_length=255, description="Nombre del bufete")
+    """Schema para actualizar una firma (all fields optional)."""
+    nombre: Optional[str] = Field(None, max_length=255, description="Nombre del bufete/empresa")
+    direccion: Optional[str] = Field(None, max_length=500, description="Direccion fisica")
+    direccion_postal: Optional[str] = Field(None, max_length=500, description="Direccion postal")
+    telefono: Optional[str] = Field(None, max_length=50, description="Telefono")
 
 
-class FirmaResponse(FirmaBase):
+class FirmaResponse(BaseModel):
     """Schema de respuesta de Firma."""
     id: int
+    nombre: Optional[str] = None
+    direccion: Optional[str] = None
+    direccion_postal: Optional[str] = None
+    telefono: Optional[str] = None
     esta_activo: bool
     creado_en: datetime
     actualizado_en: datetime
-    
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)
