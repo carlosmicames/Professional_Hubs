@@ -586,7 +586,7 @@ def render_clientes():
 # SECTION: EMPRESA (Company Settings)
 # ============================================================================
 
-def render_def render_empresa_section():
+def render_empresa_section():
     """Render the Empresa configuration section."""
     st.subheader("Configuracion de Empresa")
 
